@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ethers } from 'ethers';
-import { SEPOLIA_CONTRACT_ADDRESS, SEPOLIA_RPC_URL } from './constants/constant';
+import { ALCHEMY_SOLANA_API, SEPOLIA_CONTRACT_ADDRESS, SEPOLIA_RPC_URL } from './constants/constant';
 import { SenderContractABI } from './constants/abis/SenderContract.abi';
 import { ClientProxy } from '@nestjs/microservices';
 
@@ -8,8 +8,10 @@ import { ClientProxy } from '@nestjs/microservices';
 export class AppService {
 
   constructor(
-    @Inject('POLLING_SERVICE') private pollingClient: ClientProxy
-  ) {}
+    @Inject('POLLING_SERVICE') private pollingClient: ClientProxy,
+    @Inject('DATABASE_SERVICE') private dbClient: ClientProxy
+
+  ) { }
 
   provider = new ethers.JsonRpcProvider(SEPOLIA_RPC_URL);
   contract = new ethers.Contract(SEPOLIA_CONTRACT_ADDRESS, SenderContractABI, this.provider);
@@ -25,11 +27,53 @@ export class AppService {
         const transactionHash = event.log.transactionHash;
         console.log("Send this transaction log to polling service ", transactionHash);
         this.pollingClient.emit('new_msg', transactionHash);
+        const msgPayload = {
+          sourceTransactionHash: transactionHash,
+          createdAt: Date.now().toString(),
+          updatedAt: Date.now().toString(),
+          status: 'PENDING',
+          destinationTransactionHash: ""
+        }
+        this.dbClient.emit('save_data', msgPayload);
       }
     });
   }
 
-  async getSolanaTransactionData(txnSig: string) {
-    console.log("Txn sig ", txnSig);
+  async getSolanaTransactionData(payload: any) {
+    console.log("Txn sig ", payload.destinationTransactionHash);
+    const requestData = {
+      "id": 1,
+      "jsonrpc": "2.0",
+      "method": "getTransaction",
+      "params": [payload.destinationTransactionHash]
+    }
+    const response = await fetch(ALCHEMY_SOLANA_API, {
+      method: 'POST', // HTTP method
+      headers: {
+        'Content-Type': 'application/json', // Set the content type to JSON
+      },
+      body: JSON.stringify(requestData), // Convert data to JSON string
+    });
+
+    let updateData;
+    if (response.ok) {
+      const jsonResponse = await response.json();
+      console.log("Solana transaction response ", jsonResponse);
+      updateData = {
+        sourceTransactionHash: payload.sourceTransactionHash,
+        updatedAt: Date.now().toString(),
+        destinationTransactionHash: payload.destinationTransactionHash,
+        status: 'SUCCESS'
+      }
+    } else {
+      updateData = {
+        sourceTransactionHash: payload.sourceTransactionHash,
+        updatedAt: Date.now().toString(),
+        status: 'FAIL'
+      }
+    }
+
+    this.dbClient.emit('update_data', updateData);
+
   }
 }
