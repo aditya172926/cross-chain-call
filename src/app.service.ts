@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import { ALCHEMY_SOLANA_API, SEPOLIA_CONTRACT_ADDRESS, SEPOLIA_RPC_URL } from './constants/constant';
 import { SenderContractABI } from './constants/abis/SenderContract.abi';
 import { ClientProxy } from '@nestjs/microservices';
+import { TransactionStatus } from './interfaces/types';
 
 @Injectable()
 export class AppService {
@@ -31,7 +32,7 @@ export class AppService {
           sourceTransactionHash: transactionHash,
           createdAt: Date.now().toString(),
           updatedAt: Date.now().toString(),
-          status: 'PENDING',
+          status: TransactionStatus.PENDING,
           destinationTransactionHash: ""
         }
         this.dbClient.emit('save_data', msgPayload);
@@ -48,11 +49,11 @@ export class AppService {
       "params": [payload.destinationTransactionHash]
     }
     const response = await fetch(ALCHEMY_SOLANA_API, {
-      method: 'POST', // HTTP method
+      method: 'POST',
       headers: {
-        'Content-Type': 'application/json', // Set the content type to JSON
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(requestData), // Convert data to JSON string
+      body: JSON.stringify(requestData),
     });
 
     let updateData;
@@ -63,13 +64,13 @@ export class AppService {
         sourceTransactionHash: payload.sourceTransactionHash,
         updatedAt: Date.now().toString(),
         destinationTransactionHash: payload.destinationTransactionHash,
-        status: 'SUCCESS'
+        status: TransactionStatus.SUCCESS
       }
     } else {
       updateData = {
         sourceTransactionHash: payload.sourceTransactionHash,
         updatedAt: Date.now().toString(),
-        status: 'FAIL'
+        status: TransactionStatus.FAIL
       }
     }
 
