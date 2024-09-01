@@ -9,7 +9,7 @@ The project is able to track the message sent from the source chain and to the d
 ## Making of the project
 The entire project is made up of 4 microservices communicating with each other. These microservices are in 4 different repositories and by design are able to run and scale independently of each other.
 
-- Events Microservice
+### Events Microservice
 The **Events Microservice** is responsible for tracking of the transaction status and storing it in the database if a new transaction is made or the state of an existing one is updated.
 
 A transaction can have 3 states
@@ -17,17 +17,16 @@ A transaction can have 3 states
 - PENDING: Awaiting confirmation from the destination chain
 - FAIL: Failed to executed the destination contract logic
 
-### Working of Events Microservice
 This microservice is constantly listening to the smart contracts events which are emitted when a transaction is made on the EVM chain to send a message to the destination chain (Solana).
 
 The service captures this triggered event and decodes the logs to find the transaction hash. This hash is stored in the database and also passed to a polling microservice.
 
-- Polling Microservice
+### Polling Microservice
 The polling microservice is used for getting the bytes value of the verified message from the protocol used to send message between chains. Here the protocol in use is Wormhole. 
 
 By polling the Wormhole endpoint with the transaction hash received from the Events Microservice, we get the verified signed message from the Wormhole guardian nodes. This message is filtered out and now sent to a **Relayer Microservice**
 
-- Relayer Microservice
+### Relayer Microservice
 The Relayer microservice is responsible for processing and sending the received message to a Solana program which implements the Wormhole's `receive` function. The microservice creates an instruction to call the receive function and sends the message data in bytes.
 The message data once received by the Solana program decodes it and can conditionally perform operations, such as buy WIF tokens.
 
@@ -57,6 +56,15 @@ It is wrapped into a structure called **Verified Action Approvals** which combin
 
 The VAA is the data that will be decoded on Solana to get the message. 
 Read more about [VAA here](https://docs.wormhole.com/wormhole/explore-wormhole/vaa#vaa-format)
+
+## Contracts
+The EVM smart contracts are currently deployed on Ethereum Sepolia as of now for demonstration purpose.
+Originally it will be deployed on an Arbitrum rollup.
+We have created a local arbitrum L3 chain for our smart contracts and jusst by changing the RPC urls and funded accounts the services should work on our L3 as well.
+
+Smart Contract on Ethereum Sepolia - 0x5775172B397852b14603a9a4172f9c7Be74C5Ae5
+
+Solana contracts are currently facing an issue with the execution. For demonstration purpose of the microservices system, a dummy transaction signature from solana devnet is used.
 
 ## Steps to run
 Clone these 4 repositories
