@@ -1,13 +1,24 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { EventsService } from './events/events.service';
-import { PollingService } from './polling/polling.service';
-import { EventsModule } from './events/events.module';
+import { ClientProxyFactory, Transport } from '@nestjs/microservices';
 
 @Module({
-  imports: [EventsModule],
+  imports: [ConfigModule.forRoot()],
   controllers: [AppController],
-  providers: [AppService, EventsService, PollingService],
+  providers: [AppService, {
+    provide: 'POLLING_SERVICE',
+    inject: [ConfigService],
+    useFactory: (configService: ConfigService) => {
+      return ClientProxyFactory.create({
+        transport: Transport.TCP,
+        options: {
+          host: '127.0.0.1',
+          port: 3001,
+        }
+      })
+    }
+  }],
 })
 export class AppModule {}
