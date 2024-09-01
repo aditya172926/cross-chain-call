@@ -1,73 +1,73 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# Inter blockchain Service
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+This project is used to send messages from an EVM chain to Solana to perform some actions on the destination chain.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+This is the write-up about what I have implemented as of now.
 
-## Description
+The project is able to track the message sent from the source chain and to the destination chain and updates the status of the transaction in a No-sql database.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Making of the project
+The entire project is made up of 4 microservices communicating with each other. These microservices are in 4 different repositories and by design are able to run and scale independently of each other.
 
-## Installation
+- Events Microservice
+The **Events Microservice** is responsible for tracking of the transaction status and storing it in the database if a new transaction is made or the state of an existing one is updated.
 
-```bash
-$ npm install
-```
+A transaction can have 3 states
+- SUCCESS: Successfully executed the destination contract logic
+- PENDING: Awaiting confirmation from the destination chain
+- FAIL: Failed to executed the destination contract logic
 
-## Running the app
+### Working of Events Microservice
+This microservice is constantly listening to the smart contracts events which are emitted when a transaction is made on the EVM chain to send a message to the destination chain (Solana).
 
-```bash
-# development
-$ npm run start
+The service captures this triggered event and decodes the logs to find the transaction hash. This hash is stored in the database and also passed to a polling microservice.
 
-# watch mode
-$ npm run start:dev
+- Polling Microservice
+The polling microservice is used for getting the bytes value of the verified message from the protocol used to send message between chains. Here the protocol in use is Wormhole. 
 
-# production mode
-$ npm run start:prod
-```
+By polling the Wormhole endpoint with the transaction hash received from the Events Microservice, we get the verified signed message from the Wormhole guardian nodes. This message is filtered out and now sent to a **Relayer Microservice**
 
-## Test
+- Relayer Microservice
+The Relayer microservice is responsible for processing and sending the received message to a Solana program which implements the Wormhole's `receive` function. The microservice creates an instruction to call the receive function and sends the message data in bytes.
+The message data once received by the Solana program decodes it and can conditionally perform operations, such as buy WIF tokens.
 
-```bash
-# unit tests
-$ npm run test
+After a successful transaction on the Solana chain, the Relayer microservice receives a transaction signature in response. This transaction signature is sent to the **Events Microservice** to process.
 
-# e2e tests
-$ npm run test:e2e
+The Events microservice takes this solana transaction signature and calls a POST request api to a Solana's node endpoint, provided by Alchemy.
 
-# test coverage
-$ npm run test:cov
-```
+If the response status is 200 and we receive a response object, an event is triggered to the Database service to update the transaction to 'SUCCESS' with the destinationTransactionHash and updatedAt timestamp.
 
-## Support
+If the response is null, an event is triggered to the Database service to update the transaction to 'FAIL' with the destinationTransactionHash being an empty string.
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## Protocol Used
+The protocol in use to send messages between blockchain is [Wormhole](https://wormhole.com/). 
 
-## Stay in touch
+Wormhole protocol provides the network and libraries to be used in our smart contracts on EVM and Solana to send and receive messages.
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+Currently it easily supports EVM to EVM data transfer without any off-chain services. But for inter-blockchain communication an off-chain component such as this microservices are required.
 
-## License
+The microservices are responsible to fetch the message from the Wormhole guardian nodes, process it and send it to the Solana program receive function by Wormhole library.
 
-Nest is [MIT licensed](LICENSE).
+### Workhole Protocol workings
+The Wormhole guardian nodes are continuously watching the Wormhole Core Contract. They are the mechanism by which the messages are emitted. 
+
+The messages need to be validated by the guardian nodes before they are sent further. When the majority of the nodes observe the message they sign a **keccak256 hash** of the message body.
+
+It is wrapped into a structure called **Verified Action Approvals** which combines message with guardian signatures to form a proof. Although a VAA can be obtained by guardian RPC, even the transaction hash of the source chain will get you the VAA.
+
+The VAA is the data that will be decoded on Solana to get the message. 
+Read more about [VAA here](https://docs.wormhole.com/wormhole/explore-wormhole/vaa#vaa-format)
+
+## Steps to run
+Clone these 4 repositories
+- [Events Microservice](https://github.com/aditya172926/cross-chain-call)
+- [Polling Microservice](https://github.com/aditya172926/polling-service)
+- [Relayer Microservice](https://github.com/aditya172926/relay-service)
+- [Database Microservice](https://github.com/aditya172926/db-service)
+
+Run `npm install` in each one the cloned repos
+
+Set .env variables by viewing the .env.example and run `npm run start:dev` to start local servers for each microservice.
+
+### Docker setup
+wip
