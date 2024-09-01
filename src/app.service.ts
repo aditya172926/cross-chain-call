@@ -29,7 +29,7 @@ export class AppService {
     });
   }
 
-  getHello(): string {
-    return 'Hello World!';
+  async getSolanaTransactionData(txnSig: string) {
+    console.log("Txn sig ", txnSig);
   }
 }
