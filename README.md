@@ -66,6 +66,10 @@ It is wrapped into a structure called **Verified Action Approvals** which combin
 The VAA is the data that will be decoded on Solana to get the message. 
 Read more about [VAA here](https://docs.wormhole.com/wormhole/explore-wormhole/vaa#vaa-format)
 
+## System Architecture Design
+
+![interchain_arch drawio](https://github.com/user-attachments/assets/2543e8b1-c63e-43c2-b2c6-4fab14e96912)
+
 ## Contracts
 The EVM smart contracts are currently deployed on Ethereum Sepolia as of now for demonstration purpose.
 Originally it will be deployed on an Arbitrum rollup.
