@@ -38,7 +38,7 @@ If the response status is 200 and we receive a response object, an event is trig
 
 If the response is null, an event is triggered to the Database service to update the transaction to 'FAIL' with the destinationTransactionHash being an empty string.
 
-## Protocol Used
+## Communication Protocol Used
 The protocol in use to send messages between blockchain is [Wormhole](https://wormhole.com/). 
 
 Wormhole protocol provides the network and libraries to be used in our smart contracts on EVM and Solana to send and receive messages.
@@ -46,6 +46,15 @@ Wormhole protocol provides the network and libraries to be used in our smart con
 Currently it easily supports EVM to EVM data transfer without any off-chain services. But for inter-blockchain communication an off-chain component such as this microservices are required.
 
 The microservices are responsible to fetch the message from the Wormhole guardian nodes, process it and send it to the Solana program receive function by Wormhole library.
+
+As for the communication between the microservices itself, the project uses **Event Driven messages** over TCP communication protocol to pass data around via **events** and **messages** to each PORT on which the concerned microservice is listening on. Each service consists of event handlers subscribing to a event topic to listen to incoming events from other services.
+
+- Advantages of using Event driven communication
+1. Greated flexibility to pass data
+2. Services do not wait for a long process to complete
+3. Can handle reposes asynchronously without stopping the entire server
+
+The system is designed in a way that each component of the microservice can be swapped out with a new system for it work without causing issues for other services.
 
 ### Workhole Protocol workings
 The Wormhole guardian nodes are continuously watching the Wormhole Core Contract. They are the mechanism by which the messages are emitted. 
