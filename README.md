@@ -73,7 +73,7 @@ Read more about [VAA here](https://docs.wormhole.com/wormhole/explore-wormhole/v
 ## Contracts
 The EVM smart contracts are currently deployed on Ethereum Sepolia as of now for demonstration purpose.
 Originally it will be deployed on an Arbitrum rollup.
-We have created a local arbitrum L3 chain for our smart contracts and jusst by changing the RPC urls and funded accounts the services should work on our L3 as well.
+I have created a local arbitrum L3 chain for our smart contracts and jusst by changing the RPC urls and funded accounts the services should work on our L3 as well.
 
 Smart Contract on Ethereum Sepolia - 0x5775172B397852b14603a9a4172f9c7Be74C5Ae5
 
