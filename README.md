@@ -56,7 +56,7 @@ As for the communication between the microservices itself, the project uses **Ev
 
 The system is designed in a way that each component of the microservice can be swapped out with a new system for it work without causing issues for other services.
 
-### Workhole Protocol workings
+### Wormhole Protocol workings
 The Wormhole guardian nodes are continuously watching the Wormhole Core Contract. They are the mechanism by which the messages are emitted. 
 
 The messages need to be validated by the guardian nodes before they are sent further. When the majority of the nodes observe the message they sign a **keccak256 hash** of the message body.
