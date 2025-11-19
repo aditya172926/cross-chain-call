@@ -6,6 +6,16 @@ This is the write-up about what I have implemented as of now.
 
 The project is able to track the message sent from the source chain and to the destination chain and updates the status of the transaction in a No-sql database.
 
+## Supporting services repositories
+- [Events Microservice](https://github.com/aditya172926/cross-chain-call)
+- [Polling Microservice](https://github.com/aditya172926/polling-service)
+- [Relayer Microservice](https://github.com/aditya172926/relay-service)
+- [Database Microservice](https://github.com/aditya172926/db-service)
+
+## System Architecture Design
+
+![interchain_arch drawio](https://github.com/user-attachments/assets/2543e8b1-c63e-43c2-b2c6-4fab14e96912)
+
 ## Making of the project
 The entire project is made up of 4 microservices communicating with each other. These microservices are in 4 different repositories and by design are able to run and scale independently of each other.
 
@@ -65,10 +75,6 @@ It is wrapped into a structure called **Verified Action Approvals** which combin
 
 The VAA is the data that will be decoded on Solana to get the message. 
 Read more about [VAA here](https://docs.wormhole.com/wormhole/explore-wormhole/vaa#vaa-format)
-
-## System Architecture Design
-
-![interchain_arch drawio](https://github.com/user-attachments/assets/2543e8b1-c63e-43c2-b2c6-4fab14e96912)
 
 ## Contracts
 The EVM smart contracts are currently deployed on Ethereum Sepolia as of now for demonstration purpose.
